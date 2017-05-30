@@ -1,5 +1,7 @@
 # Multi User Blog
-A multi user blog built with Python, [jinja2](http://jinja.pocoo.org/docs/2.9/) and [Google App Engine](https://cloud.google.com/appengine/) as a part of my Full-stack Web Development Nanodegree at [udacity.com](http://udacity.com).
+A multi user blog built with Python, [jinja2](http://jinja.pocoo.org/docs/2.9/) and [Google App Engine](https://cloud.google.com/appengine/) as a part of my Full-stack Web Development Nanodegree at [udacity.com](http://udacity.com).<br>
+
+### **[Live demo](https://blog-168312.appspot.com/)**
 
 ## Features
 
@@ -25,7 +27,7 @@ Before you can start using your own blog, you need to do the following:
 5. View your with `gcloud app browse` or visit *project-name*.appspot.com
 <br><br>
 
-*If you want to run your blog locally, use `dev_appserver.py .` and access it at [http://localhost:8080]*
+*If you want to run your blog locally, use `dev_appserver.py .` and access it at* [http://localhost:8080](http://localhost:8080)
 
 ## Licencing
 
