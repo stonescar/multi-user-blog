@@ -13,6 +13,7 @@
   </label>
   <div class="error">{{err}}</div>
   <input type="submit">
+  <input type="button" value="Cancel" onclick="location.href='/post/{{p.key().id()}}';">
   <div class="del-post">
     <div class="del-post-confirm">Delete comment? <input type="button" value="Yes" class="del-post-btn2"></div>
     <input type="button" value="Delete post" class="del-post-btn1">
