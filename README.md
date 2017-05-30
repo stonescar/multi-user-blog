@@ -25,7 +25,7 @@ Before you can start using your own blog, you need to do the following:
 5. View your with `gcloud app browse` or visit *project-name*.appspot.com
 <br><br>
 
-*If you want to run your blog locally, use `dev_appserver.py .` and access it at [http://localhost:8080]*
+*If you want to run your blog locally, use `dev_appserver.py .` and access it at* [http://localhost:8080](http://localhost:8080)
 
 ## Licencing
 
