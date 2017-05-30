@@ -1,5 +1,7 @@
 # Multi User Blog
-A multi user blog built with Python, [jinja2](http://jinja.pocoo.org/docs/2.9/) and [Google App Engine](https://cloud.google.com/appengine/) as a part of my Full-stack Web Development Nanodegree at [udacity.com](http://udacity.com).
+A multi user blog built with Python, [jinja2](http://jinja.pocoo.org/docs/2.9/) and [Google App Engine](https://cloud.google.com/appengine/) as a part of my Full-stack Web Development Nanodegree at [udacity.com](http://udacity.com).<br>
+
+### **[Live demo](https://blog-168312.appspot.com/)**
 
 ## Features
 
