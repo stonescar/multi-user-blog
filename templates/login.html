@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h3>Login</h3>
+<form method="post">
+  <label for="username">
+    Username:
+    <input type="text" name="username" autofocus="true" value="{{username}}">
+  </label>
+  <label for="password">
+    Password:
+    <input type="password" name="password">
+  </label>
+  <div class="error">{{error}}</div>
+  <input type="submit">
+</form>
+<a href="/signup">Not a user? Sign up for free</a>
+{% endblock %}

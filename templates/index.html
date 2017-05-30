@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+
+{% if posts[0] %}
+  {% for post in posts %}
+    <article class="post-cont">
+      <h3><a href="/post/{{post.key().id()}}">{{post.subject}}</a></h3>
+      <div class="score-cont">
+        <div class="score">{{'{0:+d}'.format(post.score)}}</div>
+      </div>
+      <span class="meta">{{"{:%a %d %B %Y at %H.%M}".format(post.time_convert(post.created))}} by {{post.author_name()}}</span>
+      <div class="post front">{{post.content | safe}}</div>
+      <a href="/post/{{post.key().id()}}" class="read-more">Read more</a>
+    </article>
+  {% endfor %}
+{% else %}
+  <div class="no-posts">No posts</div>
+{% endif %}
+
+{% endblock %}

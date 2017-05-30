@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h3>Welcome, {{u}}</h3>
+<div class="stats">
+  <h4>Statistics</h4>
+    <ul>
+      <li>You have written <b>{{count[0]}}</b> blog post</li>
+      <li>You have written <b>{{count[1]}}</b> comments</li>
+      <li>You have voted on <b>{{count[2]}}</b> articles</li>
+      <li>The average score for your posts is <b>{{'{0:+d}'.format(count[3])}}</b></li>
+      <li>Total score of your votes is <b>{{'{0:+d}'.format(count[4])}}</b></li>
+    </ul>
+</div>
+
+<div class="last-posts">
+  <h4>Your last 5 posts</h4>
+  <ul>
+    {% if posts[0] %}
+      {% for p in posts %}
+        <li><a href="/post/{{p.key().id()}}">{{p.subject}}</a></li>
+      {% endfor %}
+    {% else %}
+      <li>You have no posts</li>
+    {% endif %}
+    </ul>
+</div>
+
+<div class="last-comms">
+  <h4>Your last 5 comments</h4>
+  <ul>
+    {% if comms[0] %}
+      {% for c in comms %}
+        <li><a href="/post/{{c.post_id}}#{{c.key().id()}}">{{c.get_post_subject()}}</a></li>
+      {% endfor %}
+    {% else %}
+      <li>You have no comments</li>
+    {% endif %}
+  </ul>
+</div>
+
+{% endblock %}

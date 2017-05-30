@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Edit post</h2>
+<form method="post">
+  <label for="subject">
+    Subject
+    <input type="text" class="subject-field" name="subject" value="{{p.subject}}">
+  </label>
+  <label for="content">
+    Content
+    <textarea name="content" class="post-ta">{{p.content}}</textarea>
+  </label>
+  <div class="error">{{err}}</div>
+  <input type="submit">
+  <div class="del-post">
+    <div class="del-post-confirm">Delete comment? <input type="button" value="Yes" class="del-post-btn2"></div>
+    <input type="button" value="Delete post" class="del-post-btn1">
+  </div>
+</form>
+
+{% endblock %}

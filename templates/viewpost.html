@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>{{p.subject}}</h2>
+<!-- Score -->
+<div class="score-cont">
+  <div class="score">{{'{0:+d}'.format(p.score)}}</div>
+  {% if p.can_vote(uid) %}
+    <div class="score-btns">
+      <a href="/post/up/{{p.key().id()}}" class="score-btn-up" title="Vote up">+</a>
+      <a href="/post/dn/{{p.key().id()}}" class="score-btn-dn" title="Vote down">-</a>
+    </div>
+  {% endif %}
+</div>
+<!-- Post -->
+<span class="meta">Published {{"{:%a %d %B %Y at %H.%M}".format(p.time_convert(p.created))}} by {{p.author_name()}}
+{% if p.is_modified() %}
+  <br>Last modified: {{"{:%a %d %B %Y at %H.%M}".format(p.time_convert(p.modified))}}
+{% endif %}
+</span>
+<div class="post">{{p.content | safe}}</div>
+{% if edit %}
+<div class="post-edit"><a href="/post/edit/{{p.key().id()}}">Edit post</a></div>
+{% endif %}
+
+<!-- Comments -->
+<hr>
+<form method="post">
+  <textarea name="comment" cols="30" rows="6" class="comment-ta" placeholder="Comment this post"></textarea>
+  <div class="error">{{err}}</div>
+  <input type="submit" class="submit-comment">
+</form>
+<section class="comments">
+  {% if comments[0] %}
+    {% for c in comments %}
+    <div class="comment-cont" id="{{c.key().id()}}">
+      <h5 class="comment-user">{{c.user}}</h5>
+      <div class="comment-time">@ {{"{:%d.%m.%y %H.%M}".format(c.time_convert(c.time))}}</div>
+      <div class="comment">{{c.comment}}</div>
+      {% if uid == c.user_id %}
+      <a href="/comment/edit/{{c.key().id()}}" class="comment-edit">Edit</a>
+      {% endif %}
+    </div>
+    {% endfor %}
+  {% else %}
+  <div class="no-comments">No comments</div>
+  {% endif %}
+</section>
+
+
+{% endblock %}
