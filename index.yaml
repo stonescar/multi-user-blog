@@ -12,6 +12,22 @@ indexes:
 
 - kind: Comments
   properties:
+  - name: author
+  - name: time
+
+- kind: Comments
+  properties:
+  - name: author
+  - name: time
+    direction: desc
+
+- kind: Comments
+  properties:
+  - name: post
+  - name: time
+
+- kind: Comments
+  properties:
   - name: post_id
   - name: time
 

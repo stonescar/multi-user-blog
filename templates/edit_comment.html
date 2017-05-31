@@ -6,7 +6,7 @@
   <textarea name="comment" cols="30" rows="10" class="comment-ta">{{c.comment}}</textarea>
   <div class="error">{{err}}</div>
   <input type="submit" class="submit-comment">
-  <input type="button" value="Cancel" onclick="location.href='/post/{{c.post_id}}';">
+  <input type="button" value="Cancel" onclick="location.href='/post/{{c.post.key().id()}}#{{c.key().id()}}';">
   <div class="del-comm">
     <div class="del-comm-confirm">Delete comment? <input type="button" value="Yes" class="del-comm-btn2"></div>
     <input type="button" value="Delete comment" class="del-comm-btn1">

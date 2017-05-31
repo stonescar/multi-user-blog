@@ -13,7 +13,7 @@
   {% endif %}
 </div>
 <!-- Post -->
-<span class="meta">Published {{"{:%a %d %B %Y at %H.%M}".format(p.time_convert(p.created))}} by {{p.author_name()}}
+<span class="meta">Published {{"{:%a %d %B %Y at %H.%M}".format(p.time_convert(p.created))}} by {{p.author.username}}
 {% if p.is_modified() %}
   <br>Last modified: {{"{:%a %d %B %Y at %H.%M}".format(p.time_convert(p.modified))}}
 {% endif %}
@@ -34,10 +34,10 @@
   {% if comments[0] %}
     {% for c in comments %}
     <div class="comment-cont" id="{{c.key().id()}}">
-      <h5 class="comment-user">{{c.user}}</h5>
+      <h5 class="comment-user">{{c.author.username}}</h5>
       <div class="comment-time">@ {{"{:%d.%m.%y %H.%M}".format(c.time_convert(c.time))}}</div>
       <div class="comment">{{c.comment}}</div>
-      {% if uid == c.user_id %}
+      {% if uid == c.author.key().id() %}
       <a href="/comment/edit/{{c.key().id()}}" class="comment-edit">Edit</a>
       {% endif %}
     </div>

@@ -8,7 +8,7 @@
       <div class="score-cont">
         <div class="score">{{'{0:+d}'.format(post.score)}}</div>
       </div>
-      <span class="meta">{{"{:%a %d %B %Y at %H.%M}".format(post.time_convert(post.created))}} by {{post.author_name()}}</span>
+      <span class="meta">{{"{:%a %d %B %Y at %H.%M}".format(post.time_convert(post.created))}} by {{post.author.username}}</span>
       <div class="post front">{{post.content | safe}}</div>
       <a href="/post/{{post.key().id()}}" class="read-more">Read more</a>
     </article>

@@ -68,19 +68,15 @@ class Posts(Database):
     content = db.TextProperty(required=True)
     created = db.DateTimeProperty(auto_now_add=True)
     modified = db.DateTimeProperty(auto_now=True)
-    author = db.IntegerProperty(required=True)
+    author = db.ReferenceProperty(Users)
     score = db.IntegerProperty(default=0)
-
-    def author_name(self):
-        a = Users.by_id(self.author)
-        return a.username
 
     def can_vote(self, uid):
         # See if user is allowed to vote
         if uid:
             u = Users.by_id(uid)
             post_id = self.key().id()
-            if uid != self.author and str(post_id) not in u.ups and str(post_id) not in u.downs: # NOQA
+            if uid != self.author.key().id() and str(post_id) not in u.ups and str(post_id) not in u.downs: # NOQA
                 return True
 
     def is_modified(self):
@@ -92,26 +88,16 @@ class Posts(Database):
 
 class Comments(Database):
     """ DB for comments """
-    user_id = db.IntegerProperty(required=True)
-    post_id = db.IntegerProperty(required=True)
+    author = db.ReferenceProperty(Users)
+    post = db.ReferenceProperty(Posts)
     comment = db.TextProperty(required=True)
     time = db.DateTimeProperty(auto_now_add=True)
-    user = db.StringProperty()
-
-    def get_post_subject(self):
-        p = Posts.by_id(self.post_id)
-        return p.subject
 
     @classmethod
     def get_comments(cls, post_id):
         c = db.GqlQuery("""SELECT * FROM Comments
-                           WHERE post_id=%s
+                           WHERE post = KEY('Posts', %s)
                            ORDER BY time""" % post_id)
-        for comm in c:
-            if not comm.user:
-                u = Users.by_id(comm.user_id)
-                comm.user = u.username
-                comm.put()
         return c
 
 
@@ -271,14 +257,13 @@ class Welcome(Handler):
     """Handler for welcome page"""
     def count(self):
         # Collecting statistics for user
-        uid = self.uid()
         # Count blog posts by user
         p = db.GqlQuery("""SELECT * FROM Posts
-                        WHERE author = %s""" % uid)
+                        WHERE author = KEY('Users', %s)""" % self.uid())
         posts = p.count()
         # Count comments by user
         c = db.GqlQuery("""SELECT * FROM Comments
-                        WHERE user_id = %s""" % uid)
+                        WHERE author = KEY('Users', %s)""" % self.uid())
         comments = c.count()
         # Count number of votes by user
         ups = self.user.ups.split(",")
@@ -299,11 +284,11 @@ class Welcome(Handler):
     @login_required
     def get(self):
         p = db.GqlQuery("""SELECT * FROM Posts
-                        WHERE author = %s
+                        WHERE author = KEY('Users', %s)
                         ORDER BY created DESC
                         LIMIT 5""" % self.uid())
         c = db.GqlQuery("""SELECT * FROM Comments
-                        WHERE user_id = %s
+                        WHERE author = KEY('Users', %s)
                         ORDER BY time DESC
                         LIMIT 5""" % self.uid())
         self.render("welcome.html",
@@ -321,7 +306,7 @@ class ViewPost(Handler):
 
     def render_post(self, post_id, *a, **kw):
         p, c = self.get_post_comments(post_id)
-        edit = True if p.author == self.uid() else False
+        edit = True if p.author.key().id() == self.uid() else False
 
         self.render("viewpost.html", p=p, comments=c,
                     uid=self.uid(), edit=edit)
@@ -339,11 +324,11 @@ class ViewPost(Handler):
         if Posts.by_id(post_id):
             comment = self.request.get("comment")
             if comment:
-                com = Comments(user_id=self.uid(),
-                               post_id=int(post_id),
-                               comment=comment)
-                com.put()
-                self.redirect("/post/%s#%s" % (str(post_id), str(com.key().id()))) # NOQA
+                c = Comments(author=self.user,
+                             post=Posts.by_id(post_id),
+                             comment=comment)
+                c.put()
+                self.redirect("/post/%s#%s" % (str(post_id), str(c.key().id()))) # NOQA
             else:
                 self.render_post(post_id, err="Comment must have content")
         else:
@@ -362,7 +347,7 @@ class NewPost(Handler):
         content = self.request.get("content")
 
         if subject and content:
-            p = Posts(subject=subject, content=content, author=self.uid())
+            p = Posts(subject=subject, content=content, author=self.user)
             p.put()
             self.redirect("/post/"+str(p.key().id()))
 
@@ -380,8 +365,8 @@ class EditPost(Handler):
     def get(self, post_id):
         p = Posts.by_id(post_id)
         if p:
-            if self.uid() == p.author:
-                self.render("edit_post.html", p=p, uid=self.uid())
+            if self.uid() == p.author.key().id():
+                self.render("edit_post.html", p=p)
             else:
                 self.redirect("/post/"+str(post_id))
         else:
@@ -395,7 +380,7 @@ class EditPost(Handler):
             content = self.request.get("content")
 
             if subject and content:
-                if self.uid() == p.author:
+                if self.uid() == p.author.key().id():
                     p.subject = subject
                     p.content = content
                     p.put()
@@ -413,7 +398,7 @@ class DelPost(Handler):
     @login_required
     def get(self, post_id):
         p = Posts.by_id(post_id)
-        if p and self.uid() == p.author:
+        if p and self.uid() == p.author.key().id():
             p.delete()
         self.redirect("/")
 
@@ -424,10 +409,10 @@ class EditComment(Handler):
     def get(self, comm_id):
         c = Comments.by_id(comm_id)
         if c:
-            if self.uid() == c.user_id:
-                self.render("edit_comment.html", c=c, uid=self.uid())
+            if self.uid() == c.author.key().id():
+                self.render("edit_comment.html", c=c)
             else:
-                self.redirect("/post/"+str(c.post_id))
+                self.redirect("/post/"+str(c.post.key().id()))
         else:
             self.redirect("/")
 
@@ -437,10 +422,10 @@ class EditComment(Handler):
         if c:
             comment = self.request.get("comment")
             if comment:
-                if self.uid() == c.user_id:
+                if self.uid() == c.author.key().id():
                     c.comment = comment
                     c.put()
-                self.redirect("/post/%s#%s" % (str(c.post_id), str(c.key().id()))) # NOQA
+                self.redirect("/post/%s#%s" % (str(c.post.key().id()), str(c.key().id()))) # NOQA
             else:
                 err = """If you want to delete the comment,
                          press the delete button"""
@@ -455,9 +440,9 @@ class DelComment(Handler):
     def get(self, comm_id):
         c = Comments.by_id(comm_id)
         if c:
-            if self.uid() == c.user_id:
+            if self.uid() == c.author.key().id():
                 c.delete()
-            self.redirect("/post/"+str(c.post_id))
+            self.redirect("/post/"+str(c.post.key().id()))
         else:
             self.redirect("/")
 

@@ -31,7 +31,7 @@
   <ul>
     {% if comms[0] %}
       {% for c in comms %}
-        <li><a href="/post/{{c.post_id}}#{{c.key().id()}}">{{c.get_post_subject()}}</a></li>
+        <li><a href="/post/{{c.post.key().id()}}#{{c.key().id()}}">{{c.post.subject}}</a></li>
       {% endfor %}
     {% else %}
       <li>You have no comments</li>
