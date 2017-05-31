@@ -122,6 +122,16 @@ class Comments(Database):
 #
 
 
+def login_required(f):
+    """Decorator to see if user is logged in"""
+    def login(self, *a, **kw):
+        if self.user:
+            f(self, *a, **kw)
+        else:
+            self.redirect("/login")
+    return login
+
+
 class Handler(webapp2.RequestHandler):
     """Main Requesthandler"""
     def write(self, *a, **kw):
@@ -286,22 +296,20 @@ class Welcome(Handler):
 
         return [posts, comments, votes, avg_score, tot_votes]
 
+    @login_required
     def get(self):
-        if self.user:
-            p = db.GqlQuery("""SELECT * FROM Posts
-                            WHERE author = %s
-                            ORDER BY created DESC
-                            LIMIT 5""" % self.uid())
-            c = db.GqlQuery("""SELECT * FROM Comments
-                            WHERE user_id = %s
-                            ORDER BY time DESC
-                            LIMIT 5""" % self.uid())
-            self.render("welcome.html",
-                        posts=p, comms=c,
-                        u=self.user.username,
-                        count=self.count())
-        else:
-            self.redirect("/login")
+        p = db.GqlQuery("""SELECT * FROM Posts
+                        WHERE author = %s
+                        ORDER BY created DESC
+                        LIMIT 5""" % self.uid())
+        c = db.GqlQuery("""SELECT * FROM Comments
+                        WHERE user_id = %s
+                        ORDER BY time DESC
+                        LIMIT 5""" % self.uid())
+        self.render("welcome.html",
+                    posts=p, comms=c,
+                    u=self.user.username,
+                    count=self.count())
 
 
 class ViewPost(Handler):
@@ -316,20 +324,19 @@ class ViewPost(Handler):
         edit = True if p.author == self.uid() else False
 
         self.render("viewpost.html", p=p, comments=c,
-                    uid=self.uid(), edit=edit, *a, **kw)
+                    uid=self.uid(), edit=edit)
 
     def get(self, post_id):
-        p, c = self.get_post_comments(post_id)
-
-        if p:
+        if Posts.by_id(post_id):
             self.render_post(post_id)
         else:
             # Send to front if post doesn't exist
             self.redirect("/")
 
+    @login_required
     def post(self, post_id):
         # Posting comments
-        if self.user:
+        if Posts.by_id(post_id):
             comment = self.request.get("comment")
             if comment:
                 com = Comments(user_id=self.uid(),
@@ -339,19 +346,17 @@ class ViewPost(Handler):
                 self.redirect("/post/%s#%s" % (str(post_id), str(com.key().id()))) # NOQA
             else:
                 self.render_post(post_id, err="Comment must have content")
-
         else:
-            self.redirect("/login")
+            self.redirect("/")
 
 
 class NewPost(Handler):
     """Handler for new post page"""
+    @login_required
     def get(self):
-        if self.user:
-            self.render("newpost.html")
-        else:
-            self.redirect("/login")
+        self.render("newpost.html")
 
+    @login_required
     def post(self):
         subject = self.request.get("subject")
         content = self.request.get("content")
@@ -359,9 +364,7 @@ class NewPost(Handler):
         if subject and content:
             p = Posts(subject=subject, content=content, author=self.uid())
             p.put()
-
-            post_id = p.key().id()
-            self.redirect("/post/"+str(post_id))
+            self.redirect("/post/"+str(p.key().id()))
 
         else:
             error = "Subject and content is required"
@@ -373,99 +376,128 @@ class NewPost(Handler):
 
 class EditPost(Handler):
     """Handler for edit post page"""
+    @login_required
     def get(self, post_id):
         p = Posts.by_id(post_id)
-        self.render("edit_post.html", p=p, uid=self.uid())
+        if p:
+            if self.uid() == p.author:
+                self.render("edit_post.html", p=p, uid=self.uid())
+            else:
+                self.redirect("/post/"+str(post_id))
+        else:
+            self.redirect("/")
 
+    @login_required
     def post(self, post_id):
         p = Posts.by_id(post_id)
-        subject = self.request.get("subject")
-        content = self.request.get("content")
+        if p:
+            subject = self.request.get("subject")
+            content = self.request.get("content")
 
-        if subject and content:
-            if self.user and self.uid() == p.author:
-                p.subject = subject
-                p.content = content
-                p.put()
+            if subject and content:
+                if self.uid() == p.author:
+                    p.subject = subject
+                    p.content = content
+                    p.put()
                 self.redirect("/post/"+str(post_id))
             else:
-                self.redirect("/login")
+                err = """If you want to delete this post,
+                         press the delete button"""
+                self.render("edit_post.html", p=p, err=err)
         else:
-            err = "If you want to delete this post, press the delete button"
-            self.render("edit_post.html", p=p, err=err)
+            self.redirect("/")
 
 
 class DelPost(Handler):
     """Handler for deleting posts"""
+    @login_required
     def get(self, post_id):
         p = Posts.by_id(post_id)
-        if self.user and self.uid() == p.author:
+        if p and self.uid() == p.author:
             p.delete()
-            self.redirect("/")
-        else:
-            self.redirect("/login")
+        self.redirect("/")
 
 
 class EditComment(Handler):
     """Handler for edit comment post page"""
+    @login_required
     def get(self, comm_id):
         c = Comments.by_id(comm_id)
-        self.render("edit_comment.html", c=c, uid=self.uid())
+        if c:
+            if self.uid() == c.user_id:
+                self.render("edit_comment.html", c=c, uid=self.uid())
+            else:
+                self.redirect("/post/"+str(c.post_id))
+        else:
+            self.redirect("/")
 
+    @login_required
     def post(self, comm_id):
         c = Comments.by_id(comm_id)
-        comment = self.request.get("comment")
-        if comment:
-            if self.user and self.uid() == c.user_id:
-                c.comment = comment
-                c.put()
-                self.redirect("/post/"+str(c.post_id))
+        if c:
+            comment = self.request.get("comment")
+            if comment:
+                if self.uid() == c.user_id:
+                    c.comment = comment
+                    c.put()
+                self.redirect("/post/%s#%s" % (str(c.post_id), str(c.key().id()))) # NOQA
             else:
-                self.redirect("/login")
+                err = """If you want to delete the comment,
+                         press the delete button"""
+                self.render("edit_comment.html", c=c, err=err)
         else:
-            err = "If you want to delete the comment, press the delete button"
-            self.render("edit_comment.html", c=c, err=err)
+            self.redirect("/")
 
 
 class DelComment(Handler):
     """Handler for deleting comments"""
+    @login_required
     def get(self, comm_id):
         c = Comments.by_id(comm_id)
-        if self.user and self.uid() == c.user_id:
-            c.delete()
+        if c:
+            if self.uid() == c.user_id:
+                c.delete()
             self.redirect("/post/"+str(c.post_id))
         else:
-            self.redirect("/login")
+            self.redirect("/")
 
 
 class VoteUp(Handler):
     """Handler for votimg up posts"""
+    @login_required
     def get(self, post_id):
         p = Posts.by_id(post_id)
-        if self.user and p.can_vote(self.uid()):
-            p.score += 1
-            self.user.ups += str(post_id)+","
-            # Don't update the modified field
-            p._properties['modified'].auto_now = False
-            p.put()
-            self.user.put()
-            p._properties['modified'].auto_now = True
+        if p:
+            if p.can_vote(self.uid()):
+                p.score += 1
+                self.user.ups += str(post_id)+","
+                # Don't update the modified field
+                p._properties['modified'].auto_now = False
+                p.put()
+                self.user.put()
+                p._properties['modified'].auto_now = True
             self.redirect("/post/"+str(post_id))
+        else:
+            self.redirect("/")
 
 
 class VoteDn(Handler):
     """Handler for voting down posts"""
+    @login_required
     def get(self, post_id):
         p = Posts.by_id(post_id)
-        if self.user and p.can_vote(self.uid()):
-            p.score -= 1
-            self.user.downs += str(post_id)+","
-            # Don't update the modified field
-            p._properties['modified'].auto_now = False
-            p.put()
-            self.user.put()
-            p._properties['modified'].auto_now = True
+        if p:
+            if p.can_vote(self.uid()):
+                p.score -= 1
+                self.user.downs += str(post_id)+","
+                # Don't update the modified field
+                p._properties['modified'].auto_now = False
+                p.put()
+                self.user.put()
+                p._properties['modified'].auto_now = True
             self.redirect("/post/"+str(post_id))
+        else:
+            self.redirect("/")
 
 
 app = webapp2.WSGIApplication([
