@@ -1,169 +1,13 @@
-import os
 import re
 
-import jinja2
 import webapp2
-import seq
-
 from google.appengine.ext import db
-from datetime import timedelta
+
+from blogmods.databases import Users, Posts, Comments
+from blogmods import env
 
 
-template_dir = os.path.join(os.path.dirname(__file__), 'templates')
-jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir),
-                               autoescape=True)
-
-
-#
-#
-# DATABASES
-#
-#
-
-class Database(db.Model):
-    def time_convert(self, t):
-        # Convert to Norwegian time zone
-        return t + timedelta(seconds=7200)
-
-    @classmethod
-    def by_id(cls, uid):
-        return cls.get_by_id(int(uid))
-
-
-class Users(Database):
-    """ DB for users """
-    username = db.StringProperty(required=True)
-    password = db.StringProperty(required=True)
-    email = db.StringProperty(required=False)
-    ups = db.TextProperty(default="")
-    downs = db.TextProperty(default="")
-
-    @classmethod
-    def by_name(cls, name):
-        u = cls.all().filter('username =', name).get()
-        return u
-
-    @classmethod
-    def name_by_id(cls, id):
-        u = cls.by_id()
-        return u.username
-
-    @classmethod
-    def register(cls, name, pw, email=None):
-        pw_hash = seq.hash_pw(name, pw)
-        return cls(username=name,
-                   password=pw_hash,
-                   email=email)
-
-    @classmethod
-    def valid_login(cls, name, pw):
-        u = cls.by_name(name)
-        if u and seq.valid_pw(name, pw, u.password):
-            return u
-
-
-class Posts(Database):
-    """ DB for blogposts """
-    subject = db.StringProperty(required=True)
-    content = db.TextProperty(required=True)
-    created = db.DateTimeProperty(auto_now_add=True)
-    modified = db.DateTimeProperty(auto_now=True)
-    author = db.ReferenceProperty(Users)
-    score = db.IntegerProperty(default=0)
-
-    def can_vote(self, uid):
-        # See if user is allowed to vote
-        if uid:
-            u = Users.by_id(uid)
-            post_id = self.key().id()
-            if uid != self.author.key().id() and str(post_id) not in u.ups and str(post_id) not in u.downs: # NOQA
-                return True
-
-    def is_modified(self):
-        # See if post has been edited
-        created = str(self.created)[:21]
-        modified = str(self.modified)[:21]
-        return True if created != modified else False
-
-
-class Comments(Database):
-    """ DB for comments """
-    author = db.ReferenceProperty(Users)
-    post = db.ReferenceProperty(Posts)
-    comment = db.TextProperty(required=True)
-    time = db.DateTimeProperty(auto_now_add=True)
-
-    @classmethod
-    def get_comments(cls, post_id):
-        c = db.GqlQuery("""SELECT * FROM Comments
-                           WHERE post = KEY('Posts', %s)
-                           ORDER BY time""" % post_id)
-        return c
-
-
-#
-#
-# HANDLERS
-#
-#
-
-
-def login_required(f):
-    """Decorator to see if user is logged in"""
-    def login(self, *a, **kw):
-        if self.user:
-            f(self, *a, **kw)
-        else:
-            self.redirect("/login")
-    return login
-
-
-class Handler(webapp2.RequestHandler):
-    """Main Requesthandler"""
-    def write(self, *a, **kw):
-        self.response.out.write(*a, **kw)
-
-    def render_str(self, template, **params):
-        t = jinja_env.get_template(template)
-        return t.render(params)
-
-    def render(self, template, **kw):
-        self.write(self.render_str(template, **kw))
-
-    def set_cookie(self, name, value, plain=False):
-        cookie_val = seq.hash_cookie(value) if not plain else value
-        self.response.headers.add_header(
-            "Set-Cookie",
-            str("%s=%s; Path=/" % (name, cookie_val)))
-
-    def get_cookie(self, name):
-        cookie = self.request.cookies.get(name)
-        return seq.valid_cookie(cookie)
-
-    def del_cookie(self, name):
-        self.response.headers.add_header(
-            "Set-Cookie",
-            str("%s=; Path=/; Expires=Wed, 21 Oct 2015 07:28:00 GMT" % name))
-
-    def login(self, user):
-        self.set_cookie('user_id', str(user.key().id()))
-        self.set_cookie('user', user.username, True)
-
-    def logout(self):
-        self.del_cookie('user_id')
-        self.del_cookie('user')
-
-    def uid(self):
-        if self.user:
-            return self.user.key().id()
-
-    def initialize(self, *a, **kw):
-        webapp2.RequestHandler.initialize(self, *a, **kw)
-        uid = self.get_cookie('user_id')
-        self.user = uid and Users.by_id(int(uid))
-
-
-class Main(Handler):
+class Main(env.Handler):
     """Handler for front page"""
     def get(self):
         posts = db.GqlQuery("""SELECT * FROM Posts
@@ -172,7 +16,7 @@ class Main(Handler):
         self.render("index.html", posts=posts)
 
 
-class Signup(Handler):
+class Signup(env.Handler):
     """Handler for signup page"""
     def verify(self, input, type):
         USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
@@ -224,7 +68,7 @@ class Signup(Handler):
                         **err)
 
 
-class Login(Handler):
+class Login(env.Handler):
     """Handler for login page"""
     def get(self):
         if self.user:
@@ -246,14 +90,14 @@ class Login(Handler):
                         error="Login not valid")
 
 
-class Logout(Handler):
+class Logout(env.Handler):
     """Handler for logging out"""
     def get(self):
         self.logout()
         self.redirect("/")
 
 
-class Welcome(Handler):
+class Welcome(env.Handler):
     """Handler for welcome page"""
     def count(self):
         # Collecting statistics for user
@@ -281,7 +125,7 @@ class Welcome(Handler):
 
         return [posts, comments, votes, avg_score, tot_votes]
 
-    @login_required
+    @env.login_required
     def get(self):
         p = db.GqlQuery("""SELECT * FROM Posts
                         WHERE author = KEY('Users', %s)
@@ -297,7 +141,7 @@ class Welcome(Handler):
                     count=self.count())
 
 
-class ViewPost(Handler):
+class ViewPost(env.Handler):
     """Handler for post pages"""
     def get_post_comments(self, post_id):
         p = Posts.by_id(post_id)
@@ -318,7 +162,7 @@ class ViewPost(Handler):
             # Send to front if post doesn't exist
             self.redirect("/")
 
-    @login_required
+    @env.login_required
     def post(self, post_id):
         # Posting comments
         if Posts.by_id(post_id):
@@ -335,13 +179,13 @@ class ViewPost(Handler):
             self.redirect("/")
 
 
-class NewPost(Handler):
+class NewPost(env.Handler):
     """Handler for new post page"""
-    @login_required
+    @env.login_required
     def get(self):
         self.render("newpost.html")
 
-    @login_required
+    @env.login_required
     def post(self):
         subject = self.request.get("subject")
         content = self.request.get("content")
@@ -359,9 +203,9 @@ class NewPost(Handler):
                         error=error)
 
 
-class EditPost(Handler):
+class EditPost(env.Handler):
     """Handler for edit post page"""
-    @login_required
+    @env.login_required
     def get(self, post_id):
         p = Posts.by_id(post_id)
         if p:
@@ -372,7 +216,7 @@ class EditPost(Handler):
         else:
             self.redirect("/")
 
-    @login_required
+    @env.login_required
     def post(self, post_id):
         p = Posts.by_id(post_id)
         if p:
@@ -393,9 +237,9 @@ class EditPost(Handler):
             self.redirect("/")
 
 
-class DelPost(Handler):
+class DelPost(env.Handler):
     """Handler for deleting posts"""
-    @login_required
+    @env.login_required
     def get(self, post_id):
         p = Posts.by_id(post_id)
         if p and self.uid() == p.author.key().id():
@@ -403,9 +247,9 @@ class DelPost(Handler):
         self.redirect("/")
 
 
-class EditComment(Handler):
+class EditComment(env.Handler):
     """Handler for edit comment post page"""
-    @login_required
+    @env.login_required
     def get(self, comm_id):
         c = Comments.by_id(comm_id)
         if c:
@@ -416,7 +260,7 @@ class EditComment(Handler):
         else:
             self.redirect("/")
 
-    @login_required
+    @env.login_required
     def post(self, comm_id):
         c = Comments.by_id(comm_id)
         if c:
@@ -434,9 +278,9 @@ class EditComment(Handler):
             self.redirect("/")
 
 
-class DelComment(Handler):
+class DelComment(env.Handler):
     """Handler for deleting comments"""
-    @login_required
+    @env.login_required
     def get(self, comm_id):
         c = Comments.by_id(comm_id)
         if c:
@@ -447,9 +291,9 @@ class DelComment(Handler):
             self.redirect("/")
 
 
-class VoteUp(Handler):
+class VoteUp(env.Handler):
     """Handler for votimg up posts"""
-    @login_required
+    @env.login_required
     def get(self, post_id):
         p = Posts.by_id(post_id)
         if p:
@@ -466,9 +310,9 @@ class VoteUp(Handler):
             self.redirect("/")
 
 
-class VoteDn(Handler):
+class VoteDn(env.Handler):
     """Handler for voting down posts"""
-    @login_required
+    @env.login_required
     def get(self, post_id):
         p = Posts.by_id(post_id)
         if p:
