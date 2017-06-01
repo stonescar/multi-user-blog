@@ -74,10 +74,7 @@ class Login(env.Handler):
     """Handler for login page"""
     @env.not_logged_in
     def get(self):
-        if self.user:
-            self.redirect("/welcome")
-        else:
-            self.render("login.html")
+        self.render("login.html")
 
     @env.not_logged_in
     def post(self):
@@ -296,7 +293,7 @@ class DelComment(env.Handler):
 
 
 class VoteUp(env.Handler):
-    """Handler for votimg up posts"""
+    """Handler for voting up posts"""
     @env.login_required
     def get(self, post_id):
         p = Posts.by_id(post_id)
