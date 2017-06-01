@@ -32,9 +32,11 @@ class Signup(env.Handler):
         else:
             return False
 
+    @env.not_logged_in
     def get(self):
         self.render("signup.html")
 
+    @env.not_logged_in
     def post(self):
         user = self.request.get("username")
         pass1 = self.request.get("password")
@@ -70,12 +72,14 @@ class Signup(env.Handler):
 
 class Login(env.Handler):
     """Handler for login page"""
+    @env.not_logged_in
     def get(self):
         if self.user:
             self.redirect("/welcome")
         else:
             self.render("login.html")
 
+    @env.not_logged_in
     def post(self):
         username = self.request.get("username")
         password = self.request.get("password")
