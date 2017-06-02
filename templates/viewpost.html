@@ -19,7 +19,7 @@
 {% endif %}
 </span>
 <div class="post">{{p.content | safe}}</div>
-{% if edit %}
+{% if uid == p.author.key().id() %}
 <div class="post-edit"><a href="/post/edit/{{p.key().id()}}">Edit post</a></div>
 {% endif %}
 

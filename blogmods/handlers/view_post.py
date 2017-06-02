@@ -6,8 +6,7 @@ from .. import utils
 class ViewPost(Handler):
     """Handler for post pages"""
     def render_post(self, p, *a, **kw):
-        edit = True if p.author.key().id() == self.uid() else False
-        self.render("viewpost.html", p=p, uid=self.uid(), edit=edit)
+        self.render("viewpost.html", p=p, uid=self.uid())
 
     @utils.post_exists
     def get(self, post_id, post):
