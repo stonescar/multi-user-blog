@@ -31,8 +31,8 @@
   <input type="submit" class="submit-comment">
 </form>
 <section class="comments">
-  {% if comments[0] %}
-    {% for c in comments %}
+  {% if p.comments[0] %}
+    {% for c in p.comments %}
     <div class="comment-cont" id="{{c.key().id()}}">
       <h5 class="comment-user">{{c.author.username}}</h5>
       <div class="comment-time">@ {{"{:%d.%m.%y %H.%M}".format(c.time_convert(c.time))}}</div>

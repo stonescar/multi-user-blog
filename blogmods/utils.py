@@ -87,7 +87,7 @@ def user_owns_comment(f):
     def wrapper(self, comm_id, *a, **kw):
         comment = Comments.by_id(comm_id)
         if comment.author.key().id() != self.uid():
-            self.redirect("/post/%s#%s" % (comment.post.key().id(), comm_id))
+            self.redirect("/post/"+str(comment.post.key().id()))
         else:
             f(self, comm_id, *a, **kw)
     return wrapper

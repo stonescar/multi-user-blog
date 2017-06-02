@@ -11,21 +11,25 @@ class Welcome(Handler):
         p = db.GqlQuery("""SELECT * FROM Posts
                         WHERE author = KEY('Users', %s)""" % self.uid())
         posts = p.count()
+
         # Count comments by user
         c = db.GqlQuery("""SELECT * FROM Comments
                         WHERE author = KEY('Users', %s)""" % self.uid())
         comments = c.count()
+
         # Count number of votes by user
         ups = self.user.ups.split(",")
         downs = self.user.downs.split(",")
         ups = 0 if len(ups) == 0 else len(ups)-1
         downs = 0 if len(downs) == 0 else len(downs)-1
         votes = ups+downs
+
         # Count average score of posts by user
         scores = []
         for post in p:
             scores.append(post.score)
         avg_score = sum(scores) / len(scores) if len(scores) else 0
+
         # Count score of votes
         tot_votes = ups-downs
 

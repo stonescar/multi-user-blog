@@ -25,3 +25,11 @@ class Posts(Database):
         created = str(self.created)[:21]
         modified = str(self.modified)[:21]
         return True if created != modified else False
+
+    @property
+    def comments(self):
+        # Get all comments for post
+        c = db.GqlQuery("""SELECT * FROM Comments
+                           WHERE post = KEY('Posts', %s)
+                           ORDER BY time""" % self.key().id())
+        return c
