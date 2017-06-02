@@ -3,7 +3,7 @@ import jinja2
 import webapp2
 
 import seq
-from databases import Users
+from models import Users
 
 
 template_dir = os.path.join(os.path.dirname(__file__), '../templates')

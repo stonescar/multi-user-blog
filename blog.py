@@ -3,7 +3,7 @@ import re
 import webapp2
 from google.appengine.ext import db
 
-from blogmods.databases import Users, Posts, Comments
+from blogmods.models import Users, Posts, Comments
 from blogmods import env
 
 
