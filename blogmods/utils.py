@@ -1,7 +1,7 @@
 import os
 import jinja2
 from functools import wraps
-from .models import Posts, Comments
+from .models import Posts, Comments, Votes
 
 
 template_dir = os.path.join(os.path.dirname(__file__), '../templates')
@@ -91,3 +91,15 @@ def user_owns_comment(f):
         else:
             f(self, comm_id, *a, **kw)
     return wrapper
+
+
+def vote_up(p, u):
+    if p.can_vote(u.key().id()):
+        v = Votes(post=p, user=u, vote=1)
+        v.put()
+
+
+def vote_dn(p, u):
+    if p.can_vote(u.key().id()):
+        v = Votes(post=p, user=u, vote=-1)
+        v.put()

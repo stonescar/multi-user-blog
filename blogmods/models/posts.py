@@ -10,15 +10,24 @@ class Posts(Database):
     created = db.DateTimeProperty(auto_now_add=True)
     modified = db.DateTimeProperty(auto_now=True)
     author = db.ReferenceProperty(Users)
-    score = db.IntegerProperty(default=0)
 
     def can_vote(self, uid):
         # See if user is allowed to vote
         if uid:
-            u = Users.by_id(uid)
             post_id = self.key().id()
-            if uid != self.author.key().id() and str(post_id) not in u.ups and str(post_id) not in u.downs: # NOQA
+            v = db.GqlQuery("""SELECT vote FROM Votes
+                               WHERE post = KEY('Posts', %s)
+                               AND user = KEY('Users', %s)
+                               """ % (post_id, uid))
+            if v.count() == 0 and uid != self.author.key().id():
                 return True
+
+    def get_score(self):
+        s = db.GqlQuery("""SELECT * FROM Votes
+                               WHERE post = KEY('Posts', %s)
+                               """ % self.key().id())
+        score = sum(v.vote for v in s) if s.count() > 0 else 0
+        return score
 
     def is_modified(self):
         # See if post has been edited

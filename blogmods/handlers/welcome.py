@@ -10,6 +10,7 @@ class Welcome(Handler):
         # Count blog posts by user
         p = db.GqlQuery("""SELECT * FROM Posts
                         WHERE author = KEY('Users', %s)""" % self.uid())
+        uid = self.uid()
         posts = p.count()
 
         # Count comments by user
@@ -18,20 +19,13 @@ class Welcome(Handler):
         comments = c.count()
 
         # Count number of votes by user
-        ups = self.user.ups.split(",")
-        downs = self.user.downs.split(",")
-        ups = 0 if len(ups) == 0 else len(ups)-1
-        downs = 0 if len(downs) == 0 else len(downs)-1
-        votes = ups+downs
+        votes = self.user.get_votes(uid)
 
         # Count average score of posts by user
-        scores = []
-        for post in p:
-            scores.append(post.score)
-        avg_score = sum(scores) / len(scores) if len(scores) else 0
+        avg_score = self.user.get_post_scores(uid)
 
         # Count score of votes
-        tot_votes = ups-downs
+        tot_votes = self.user.get_vote_score(uid)
 
         return [posts, comments, votes, avg_score, tot_votes]
 

@@ -4,7 +4,7 @@
 <h2>{{p.subject}}</h2>
 <!-- Score -->
 <div class="score-cont">
-  <div class="score">{{'{0:+d}'.format(p.score)}}</div>
+  <div class="score">{{'{0:+d}'.format(p.get_score())}}</div>
   {% if p.can_vote(uid) %}
     <div class="score-btns">
       <a href="/post/up/{{p.key().id()}}" class="score-btn-up" title="Vote up">+</a>

@@ -48,3 +48,9 @@ indexes:
   - name: author
   - name: created
     direction: desc
+
+- kind: Votes
+  properties:
+  - name: post
+  - name: user
+  - name: vote
